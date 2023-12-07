@@ -2,8 +2,8 @@ import logging
 import os
 import pathlib
 
-from project.beir.beir import util
-from project.beir.beir.datasets.data_loader import GenericDataLoader
+from beir.beir import util
+from beir.beir.datasets.data_loader import GenericDataLoader
 
 logger = logging.getLogger(__name__)
 
