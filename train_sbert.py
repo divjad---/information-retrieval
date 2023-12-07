@@ -47,7 +47,7 @@ data_loader = utils.get_dataset(dataset)
 #### Provide the data_path where nfcorpus has been downloaded and unzipped
 corpus, queries, qrels = data_loader.load(split="train")
 #### Please Note not all datasets contain a dev split, comment out the line if such the case
-# dev_corpus, dev_queries, dev_qrels = data_loader.load(split="dev")
+dev_corpus, dev_queries, dev_qrels = data_loader.load(split="dev")
 
 #### Provide any sentence-transformers or HF model
 model_name = "sentence-transformers/all-distilroberta-v1"
