@@ -21,8 +21,9 @@ import torch
 from sentence_transformers import losses, SentenceTransformer
 
 from beir.beir import LoggingHandler
+from beir.beir import util
+from beir.beir.datasets.data_loader import GenericDataLoader
 from beir.beir.retrieval.train import TrainRetriever
-from helpers import utils
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -42,12 +43,15 @@ logging.info("Using Device: {}".format(device))
 #### Download dataset and unzip the dataset
 dataset = "msmarco"
 
-data_loader = utils.get_dataset(dataset)
+out_dir = "datasets"
+url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(dataset)
+out_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), out_dir)
+data_path = util.download_and_unzip(url, out_dir)
 
 #### Provide the data_path where nfcorpus has been downloaded and unzipped
-corpus, queries, qrels = data_loader.load(split="train")
+corpus, queries, qrels = GenericDataLoader(data_path).load(split="train")
 #### Please Note not all datasets contain a dev split, comment out the line if such the case
-dev_corpus, dev_queries, dev_qrels = data_loader.load(split="dev")
+dev_corpus, dev_queries, dev_qrels = GenericDataLoader(data_path).load(split="dev")
 
 #### Provide any sentence-transformers or HF model
 model_name = "sentence-transformers/all-distilroberta-v1"
