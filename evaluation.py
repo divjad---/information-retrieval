@@ -7,8 +7,6 @@ from beir.beir.datasets.data_loader import GenericDataLoader
 from beir.beir.retrieval import models
 from beir.beir.retrieval.evaluation import EvaluateRetrieval
 from beir.beir.retrieval.search.sparse import SparseSearch
-from beir.beir.retrieval.search.dense import DenseRetrievalExactSearch as DRES
-from project.helpers import utils
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -19,9 +17,12 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 
 dataset = "msmarco"
 
-data_loader = utils.get_dataset(dataset)
+out_dir = "datasets"
+url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(dataset)
+out_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), out_dir)
+data_path = util.download_and_unzip(url, out_dir)
 
-corpus, queries, qrels = data_loader.load(split="test")
+corpus, queries, qrels = GenericDataLoader(data_path).load(split="test")
 
 #### Sparse Retrieval using SPARTA ####
 model_path = "output/sentence-transformers/all-distilroberta-v1-v1-msmarco"
