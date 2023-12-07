@@ -8,6 +8,7 @@ from beir.beir.retrieval import models
 from beir.beir.retrieval.evaluation import EvaluateRetrieval
 from beir.beir.retrieval.search.sparse import SparseSearch
 from beir.beir.retrieval.search.dense import DenseRetrievalExactSearch as DRES
+from project.helpers import utils
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -16,24 +17,14 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-dataset = "scifact"
+dataset = "msmarco"
 
-#### Download scifact dataset and unzip the dataset
-url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(dataset)
-out_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "datasets")
-data_path = util.download_and_unzip(url, out_dir)
+data_loader = utils.get_dataset(dataset)
 
-#### Provide the data path where scifact has been downloaded and unzipped to the data loader
-# data folder would contain these files:
-# (1) scifact/corpus.jsonl  (format: jsonlines)
-# (2) scifact/queries.jsonl (format: jsonlines)
-# (3) scifact/qrels/test.tsv (format: tsv ("\t"))
-
-corpus, queries, qrels = GenericDataLoader(data_folder=data_path).load(split="test")
+corpus, queries, qrels = data_loader.load(split="test")
 
 #### Sparse Retrieval using SPARTA ####
-#model_path = "output/all-mpnet-base-v2-v1-scifact"
-model_path = "output/sentence-transformers/all-distilroberta-v1-v1-scifact"
+model_path = "output/sentence-transformers/all-distilroberta-v1-v1-msmarco"
 sparse_model = SparseSearch(models.SPARTA(model_path, device="mps"), batch_size=128)
 #model = DRES(models.SentenceBERT(model_path), batch_size=128, corpus_chunk_size=512*9999)
 retriever = EvaluateRetrieval(sparse_model)
