@@ -2,11 +2,13 @@ import logging
 import os
 import pathlib
 import random
+from time import time
+
 from beir.beir import util, LoggingHandler
 from beir.beir.datasets.data_loader import GenericDataLoader
 from beir.beir.retrieval import models
 from beir.beir.retrieval.evaluation import EvaluateRetrieval
-from beir.beir.retrieval.search.sparse import SparseSearch
+from beir.beir.retrieval.search.dense import DenseRetrievalExactSearch as DRES
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -15,28 +17,44 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 #### /print debug information to stdout
 
-dataset = "msmarco"
+dataset = "nfcorpus"
 
-out_dir = "datasets"
+#### Download nfcorpus.zip dataset and unzip the dataset
 url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(dataset)
-out_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), out_dir)
+out_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "datasets")
 data_path = util.download_and_unzip(url, out_dir)
 
-corpus, queries, qrels = GenericDataLoader(data_path).load(split="test")
+#### Provide the data path where nfcorpus has been downloaded and unzipped to the data loader
+# data folder would contain these files: 
+# (1) nfcorpus/corpus.jsonl  (format: jsonlines)
+# (2) nfcorpus/queries.jsonl (format: jsonlines)
+# (3) nfcorpus/qrels/test.tsv (format: tsv ("\t"))
 
-#### Sparse Retrieval using SPARTA ####
-model_path = "output/sentence-transformers/all-distilroberta-v1-v1-msmarco"
-sparse_model = SparseSearch(models.SPARTA(model_path, device="mps"), batch_size=128)
-#model = DRES(models.SentenceBERT(model_path), batch_size=128, corpus_chunk_size=512*9999)
-retriever = EvaluateRetrieval(sparse_model)
+corpus, queries, qrels = GenericDataLoader(data_folder=data_path).load(split="test")
+
+#### Dense Retrieval using SBERT (Sentence-BERT) ####
+#### Provide any pretrained sentence-transformers model
+#### The model was fine-tuned using cosine-similarity.
+#### Complete list - https://www.sbert.net/docs/pretrained_models.html
+
+model_path = "output/sentence-transformers/all-distilroberta-v1-v1-scifact"
+model = DRES(models.SentenceBERT(model_path), batch_size=256,
+             corpus_chunk_size=512 * 9999)
+retriever = EvaluateRetrieval(model, score_function="dot")
 
 #### Retrieve dense results (format of results is identical to qrels)
+start_time = time()
 results = retriever.retrieve(corpus, queries)
-
+end_time = time()
+print("Time taken to retrieve: {:.2f} seconds".format(end_time - start_time))
 #### Evaluate your retrieval using NDCG@k, MAP@K ...
 
 logging.info("Retriever evaluation for k in: {}".format(retriever.k_values))
 ndcg, _map, recall, precision = retriever.evaluate(qrels, results, retriever.k_values)
+
+mrr = retriever.evaluate_custom(qrels, results, retriever.k_values, metric="mrr")
+recall_cap = retriever.evaluate_custom(qrels, results, retriever.k_values, metric="r_cap")
+hole = retriever.evaluate_custom(qrels, results, retriever.k_values, metric="hole")
 
 #### Print top-k documents retrieved ####
 top_k = 10

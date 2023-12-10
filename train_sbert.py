@@ -41,7 +41,7 @@ elif torch.backends.mps.is_available():
 logging.info("Using Device: {}".format(device))
 
 #### Download dataset and unzip the dataset
-dataset = "msmarco"
+dataset = "scifact"
 
 out_dir = "datasets"
 url = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{}.zip".format(dataset)
@@ -51,7 +51,7 @@ data_path = util.download_and_unzip(url, out_dir)
 #### Provide the data_path where nfcorpus has been downloaded and unzipped
 corpus, queries, qrels = GenericDataLoader(data_path).load(split="train")
 #### Please Note not all datasets contain a dev split, comment out the line if such the case
-dev_corpus, dev_queries, dev_qrels = GenericDataLoader(data_path).load(split="dev")
+# dev_corpus, dev_queries, dev_qrels = GenericDataLoader(data_path).load(split="dev")
 
 #### Provide any sentence-transformers or HF model
 model_name = "sentence-transformers/all-distilroberta-v1"
@@ -74,10 +74,10 @@ train_loss = losses.MultipleNegativesRankingLoss(model=retriever.model)
 # train_loss = losses.MultipleNegativesRankingLoss(model=retriever.model, similarity_fct=util.dot_score)
 
 #### Prepare dev evaluator
-ir_evaluator = retriever.load_ir_evaluator(dev_corpus, dev_queries, dev_qrels)
+#ir_evaluator = retriever.load_ir_evaluator(dev_corpus, dev_queries, dev_qrels)
 
 #### If no dev set is present from above use dummy evaluator
-# ir_evaluator = retriever.load_dummy_evaluator()
+ir_evaluator = retriever.load_dummy_evaluator()
 
 #### Provide model save path
 model_save_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "output",
@@ -85,9 +85,12 @@ model_save_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "output
 os.makedirs(model_save_path, exist_ok=True)
 
 #### Configure Train params
-num_epochs = 1
+num_epochs = 5
 evaluation_steps = 5000
 warmup_steps = int(len(train_samples) * num_epochs / retriever.batch_size * 0.1)
+
+logging.info("Warmup-steps: {}".format(warmup_steps))
+logging.info("Warmup-steps: {}".format(int(len(train_samples) * num_epochs / (retriever.batch_size * 0.1))))
 
 retriever.fit(train_objectives=[(train_dataloader, train_loss)],
               evaluator=ir_evaluator,
